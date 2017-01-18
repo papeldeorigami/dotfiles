@@ -1,3 +1,6 @@
 [submodule ".byobu/plugins/tpm"]
 	path = .byobu/plugins/tpm
 	url = https://github.com/tmux-plugins/tpm
+[submodule ".vim"]
+	path = .vim
+	url = https://github.com/papeldeorigami/dotvim
