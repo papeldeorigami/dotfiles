@@ -4,3 +4,12 @@
 [submodule ".vim"]
 	path = .vim
 	url = https://github.com/papeldeorigami/dotvim
+[submodule ".byobu/plugins/tmux-continuum"]
+	path = .byobu/plugins/tmux-continuum
+	url = https://github.com/tmux-plugins/tmux-continuum
+[submodule ".byobu/plugins/tmux-resurrect"]
+	path = .byobu/plugins/tmux-resurrect
+	url = https://github.com/tmux-plugins/tmux-resurrect
+[submodule ".byobu/plugins/tmux-sensible"]
+	path = .byobu/plugins/tmux-sensible
+	url = https://github.com/tmux-plugins/tmux-sensible
