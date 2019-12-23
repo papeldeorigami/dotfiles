@@ -12,3 +12,9 @@ ln -s $BASEDIR/.vim ~/.vim
 ln -s $BASEDIR/.vim/.vimrc ~/.vimrc
 [ ! -f ~/.ctags ] || mv ~/.ctags ~/.ctags.old || rm -rf ~/.ctags
 ln -s $BASEDIR/.ctags ~/.ctags
+VSCODEDIR=~/.config/Code/User
+mkdir -p $VSCODEDIR
+[ ! -f $VSCODEDIR/keybindings.json ] || mv $VSCODEDIR/keybindings.json $VSCODEDIR/keybindings.json.old || rm -f $VSCODEDIR/keybindings.json
+[ ! -f $VSCODEDIR/settings.json ] || mv $VSCODEDIR/settings.json $VSCODEDIR/settings.json.old || rm -f $VSCODEDIR/settings.json
+ln -s $BASEDIR/vscode/keybindings.json $VSCODEDIR/keybindings.json
+ln -s $BASEDIR/vscode/settings.json $VSCODEDIR/settings.json

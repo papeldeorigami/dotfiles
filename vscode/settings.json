@@ -1,0 +1,108 @@
+{
+  "vim.normalModeKeyBindingsNonRecursive": [
+    {
+      "before": ["<leader>", "d"],
+      "after": ["\"", "_", "d"]
+    },
+    {
+      "before": ["<leader>", "n"],
+      "commands": ["workbench.view.explorer"]
+    },
+    {
+      "before": ["<C-a>"],
+      "after": ["g", "g", "V", "G"]
+    },
+    {
+      "before": ["<leader>", "w"],
+      "commands": ["workbench.action.files.save"]
+    },
+    {
+      "before": ["<leader>", "r"],
+      "commands": ["extension.vim_ctrl+y"]
+    },
+    {
+      "before": ["<S-Tab>"],
+      "after": ["<", "<"]
+    },
+    {
+      "before": ["<tab>"],
+      "after": [">", ">"]
+    },
+    {
+      "before": ["<leader>", "c", "<leader>"],
+      "commands": ["editor.action.commentLine"]
+    },
+    {
+      "before": ["<C-j>"],
+      "after": ["i", "<CR>"]
+    }
+  ],
+  "vim.visualModeKeyBindings": [
+    {
+      "before": ["<leader>", "c", "<leader>"],
+      "commands": ["editor.action.commentLine"]
+    }
+  ],
+  "vim.visualModeKeyBindingsNonRecursive": [
+    {
+      "before": ["<leader>", "c", "<leader>"],
+      "commands": ["editor.action.commentLine"]
+    },
+    {
+      "before": ["p"],
+      "after": ["p", "g", "v", "y"]
+    }
+  ],
+  "git.autofetch": true,
+  "editor.formatOnSave": true,
+  "editor.formatOnType": true,
+  "prettier.trailingComma": "es5",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "window.zoomLevel": 1,
+  "files.associations": {
+    ".env": "ini",
+    "*.rmd": "markdown"
+  },
+  "vim.easymotion": true,
+  "vim.leader": "<space>",
+  "vim.handleKeys": {
+    "<C-y>": false,
+    "<C-d>": false,
+    "<C-k>": false,
+    "<C-f>": false,
+    "<C-w>": false
+  },
+  "vim.useSystemClipboard": true,
+  "vim.visualstar": true,
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "editor.maxTokenizationLineLength": 20000000,
+  "jest.autoEnable": false,
+  "mocha.coverage": {
+    "enable": false
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "workbench.editor.enablePreview": false,
+  "workbench.editor.enablePreviewFromQuickOpen": false,
+  // "workbench.colorCustomizations": {
+  //   "foreground": "#c0c0c0",
+  //   "textPreformat.foreground": "#c0c0c0",
+  //   "editor.foreground": "#c0c0c0",
+  //   "editorLineNumber.foreground": "#c0c0c0"
+  // },
+  "editor.multiCursorModifier": "ctrlCmd",
+  "typescript.format.insertSpaceAfterConstructor": true,
+  "workbench.sideBar.location": "left",
+  "python.linting.pylintCategorySeverity.convention": "Hint",
+  "python.linting.pylintUseMinimalCheckers": false,
+  "python.dataScience.sendSelectionToInteractiveWindow": false
+}
