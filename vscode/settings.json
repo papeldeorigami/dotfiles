@@ -5,12 +5,16 @@
       "after": ["\"", "_", "d"]
     },
     {
-      "before": ["<leader>", "n"],
-      "commands": ["workbench.view.explorer"]
+      "before": ["p", "p"],
+      "after": ["p"]
     },
     {
-      "before": ["<C-a>"],
-      "after": ["g", "g", "V", "G"]
+      "before": ["p"],
+      "after": ["\"", "_", "d", "P"]
+    },
+    {
+      "before": ["<leader>", "n"],
+      "commands": ["workbench.view.explorer"]
     },
     {
       "before": ["<leader>", "w"],
@@ -35,6 +39,10 @@
     {
       "before": ["<C-j>"],
       "after": ["i", "<CR>"]
+    },
+    {
+      "before": ["C-a"],
+      "after": ["g", "g", "V", "G"]
     }
   ],
   "vim.visualModeKeyBindings": [
@@ -49,40 +57,50 @@
       "commands": ["editor.action.commentLine"]
     },
     {
+      "before": ["C-a"],
+      "after": ["g", "g", "V", "G"]
+    },
+    {
+      "before": ["<leader>", "d"],
+      "after": ["\"", "_", "d"]
+    },
+    {
       "before": ["p"],
-      "after": ["p", "g", "v", "y"]
+      "after": ["\"", "_", "d", "P"]
+    },
+    {
+      "before": [">"],
+      "after": [">", "g", "v"]
+    },
+    {
+      "before": ["<"],
+      "after": ["<", "g", "v"]
     }
   ],
   "git.autofetch": true,
-  "editor.formatOnSave": true,
   "editor.formatOnType": true,
-  "prettier.trailingComma": "es5",
   "javascript.updateImportsOnFileMove.enabled": "always",
   "window.zoomLevel": 1,
   "files.associations": {
     ".env": "ini",
     "*.rmd": "markdown"
   },
+  "vim.highlightedyank.enable": true,
   "vim.easymotion": true,
   "vim.leader": "<space>",
   "vim.handleKeys": {
+    "<C-a>": true,
+    "<C-v>": false,
+    "<C-c>": false,
     "<C-y>": false,
     "<C-d>": false,
     "<C-k>": false,
     "<C-f>": false,
+    "<C-h>": false,
     "<C-w>": false
   },
   "vim.useSystemClipboard": true,
   "vim.visualstar": true,
-  "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[javascriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
   "editor.maxTokenizationLineLength": 20000000,
   "jest.autoEnable": false,
   "mocha.coverage": {
@@ -102,7 +120,57 @@
   "editor.multiCursorModifier": "ctrlCmd",
   "typescript.format.insertSpaceAfterConstructor": true,
   "workbench.sideBar.location": "left",
-  "python.linting.pylintCategorySeverity.convention": "Hint",
-  "python.linting.pylintUseMinimalCheckers": false,
-  "python.dataScience.sendSelectionToInteractiveWindow": false
+  "vim.whichwrap": "[,],<,>",
+  "plantuml.render": "PlantUMLServer",
+  "plantuml.server": "http://localhost:8001/",
+  "vim.normalModeKeyBindings": [],
+  "debug.openDebug": "openOnDebugBreak",
+  "aws.samcli.location": "/home/linuxbrew/.linuxbrew/bin/sam",
+  "aws.profile": "profile:codehashi",
+  "[dart]": {
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "editor.rulers": [80],
+    "editor.selectionHighlight": false,
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    "editor.suggestSelection": "first",
+    "editor.tabCompletion": "onlySnippets",
+    "editor.wordBasedSuggestions": false
+  },
+  "todo-tree.tree.showScanModeButton": false,
+  "workbench.editorAssociations": [
+    {
+      "viewType": "jupyter.notebook.ipynb",
+      "filenamePattern": "*.ipynb"
+    }
+  ],
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.python"
+  },
+  "workbench.startupEditor": "newUntitledFile",
+  "editor.formatOnSave": true,
+  "debug.javascript.autoAttachFilter": "smart",
+  "todo-tree.general.tags": [
+    "BUG",
+    "HACK",
+    "FIXME",
+    "TODO",
+    "XXX",
+    "[ ]",
+    "[x]"
+  ],
+  "todo-tree.regex.regex": "(//|#|<!--|;|/\\*|^|^\\s*(-|\\d+.))\\s*($TAGS)",
+  "[vue]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "diffEditor.ignoreTrimWhitespace": false
 }

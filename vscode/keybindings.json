@@ -7,5 +7,9 @@
   {
     "key": "ctrl+shift+s",
     "command": "workbench.action.files.saveAll"
+  },
+  {
+    "key": "alt+escape",
+    "command": "toggleVim"
   }
 ]
