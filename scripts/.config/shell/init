@@ -30,3 +30,10 @@ if command -v fzf &>/dev/null; then
     source <(fzf --zsh 2>/dev/null)
   fi
 fi
+
+# ---------- Load additional configs --------
+# load secrets like API keys
+[ -f ~/.secrets.sh ] && . ~/.secrets.sh
+
+# load claude code config
+. ~/.config/shell/claude-env.sh

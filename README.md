@@ -42,6 +42,18 @@ The `~/.local/bin/tmux-yank` script detects the environment and picks the right 
 2. **Local X11** → `xclip`
 3. **Local Wayland** → `wl-copy`
 
+## Secrets
+
+Create `~/.secrets.sh` to export API keys and other sensitive environment variables. It's sourced automatically by `~/.config/shell/init` (if the file exists).
+
+```bash
+# ~/.secrets.sh — never commit this file
+export ANTHROPIC_API_KEY="sk-..."
+export OPENAI_API_KEY="..."
+```
+
+The pattern `secrets.sh` is in `.gitignore` to prevent accidental commits.
+
 ## Shell Completions
 
 The `scripts` package provides `~/.config/shell/init`, a shell-agnostic init file sourced from both `.bashrc` and `.zshrc` by a single line:
