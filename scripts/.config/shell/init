@@ -1,6 +1,13 @@
 # Source this from .bashrc or .zshrc with:
 #   [ -f "$HOME/.config/shell/init" ] && . "$HOME/.config/shell/init"
 
+# ---------- PATH ----------
+# Add local bin directory (not in PATH by default on macOS)
+case ":${PATH}:" in
+  *:"$HOME/.local/bin":*) ;;
+  *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
 # ---------- Mise (multi-tool version manager) ----------
 export MISE_YES=1  # auto-confirm mise operations
 if command -v mise &>/dev/null; then
@@ -37,6 +44,41 @@ if command -v fzf &>/dev/null; then
   elif [ -n "$ZSH_VERSION" ]; then
     source <(fzf --zsh 2>/dev/null)
   fi
+fi
+
+# ---------- Zsh-specific tools ----------
+if [ -n "$ZSH_VERSION" ]; then
+  # Determine Homebrew prefix (macOS)
+  _zsh_brew_prefix=""
+  if [ -x /opt/homebrew/bin/brew ]; then
+    _zsh_brew_prefix="/opt/homebrew"
+  elif [ -x /usr/local/bin/brew ]; then
+    _zsh_brew_prefix="/usr/local"
+  fi
+
+  # zsh-autosuggestions
+  if [ -n "$_zsh_brew_prefix" ] && [ -f "$_zsh_brew_prefix/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]; then
+    source "$_zsh_brew_prefix/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+  fi
+
+  # Completions: add Homebrew-managed completions, enable menu navigation with cursor keys
+  if [ -n "$_zsh_brew_prefix" ] && [ -d "$_zsh_brew_prefix/share/zsh/site-functions" ]; then
+    fpath=("$_zsh_brew_prefix/share/zsh/site-functions" $fpath)
+  fi
+  zmodload zsh/complist
+  zstyle ':completion:*' menu select
+  autoload -Uz compinit
+  compinit -u
+
+  # Vi mode for prompt editing (Esc for normal mode, i to insert, etc.)
+  bindkey -v
+
+  # zsh-syntax-highlighting (must be sourced last — it registers zle hooks)
+  if [ -n "$_zsh_brew_prefix" ] && [ -f "$_zsh_brew_prefix/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]; then
+    source "$_zsh_brew_prefix/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+  fi
+
+  unset _zsh_brew_prefix
 fi
 
 # ---------- Load additional configs --------

@@ -183,6 +183,18 @@ if ! command -v fzf &>/dev/null; then
   esac
 fi
 
+# Install zsh plugins (macOS / Homebrew only)
+if command -v brew &>/dev/null && command -v zsh &>/dev/null; then
+  zsh_plugins=()
+  ! [ -f "$(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ] && zsh_plugins+=("zsh-autosuggestions")
+  ! [ -f "$(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ] && zsh_plugins+=("zsh-syntax-highlighting")
+  ! [ -d "$(brew --prefix)/share/zsh/site-functions" ] && zsh_plugins+=("zsh-completions")
+  if [ ${#zsh_plugins[@]} -gt 0 ]; then
+    echo "Installing zsh plugins: ${zsh_plugins[*]}"
+    brew install "${zsh_plugins[@]}"
+  fi
+fi
+
 # Install starship prompt
 if ! command -v starship &>/dev/null; then
   echo "Installing starship..."

@@ -2,6 +2,10 @@
 # Full workflow: generate SSH key, configure SSH, set up gh, add key to GitHub
 set -euo pipefail
 
+# macOS sed needs an explicit backup extension arg for -i
+SED_I_OPT=(-i)
+[ "$(uname)" = Darwin ] && SED_I_OPT=(-i '')
+
 PURPOSE=""
 KEY_PATH=""
 PASSPHRASE=""
@@ -64,10 +68,10 @@ _ssh_config_remove() {
     return
   fi
   if grep -qF "$block_start" "$ssh_config" 2>/dev/null; then
-    sed -i "/^${block_start}$/,/^${block_end}$/d" "$ssh_config"
+    sed "${SED_I_OPT[@]}" "/^${block_start}$/,/^${block_end}$/d" "$ssh_config"
     echo "Removed config block for '${host_alias}'."
     # Collapse multiple consecutive blank lines into one
-    sed -i '/^$/{ N; /^\n$/d; }' "$ssh_config"
+    sed "${SED_I_OPT[@]}" '/^$/{ N; /^\n$/d; }' "$ssh_config"
   else
     echo "No config block found for '${host_alias}'. Nothing to remove."
   fi
@@ -112,8 +116,8 @@ _ssh_config_add() {
   local tmp_block_start="$block_start"
   local tmp_block_end="$block_end"
   if grep -qF "$block_start" "$ssh_config" 2>/dev/null; then
-    sed -i "/^${block_start}$/,/^${block_end}$/d" "$ssh_config"
-    sed -i '/^$/{ N; /^\n$/d; }' "$ssh_config"
+    sed "${SED_I_OPT[@]}" "/^${block_start}$/,/^${block_end}$/d" "$ssh_config"
+    sed "${SED_I_OPT[@]}" '/^$/{ N; /^\n$/d; }' "$ssh_config"
   fi 2>/dev/null || true
 
   {
@@ -127,7 +131,7 @@ _ssh_config_add() {
   } >> "$ssh_config"
 
   # Collapse multiple consecutive blank lines into one
-  sed -i '/^$/{ N; /^\n$/d; }' "$ssh_config"
+  sed "${SED_I_OPT[@]}" '/^$/{ N; /^\n$/d; }' "$ssh_config"
 
   echo "Configured SSH to use ${key_path} for ${host_alias} (→ ${hostname})."
   echo "  Config: ${ssh_config}"
