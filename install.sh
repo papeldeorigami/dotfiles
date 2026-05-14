@@ -193,10 +193,58 @@ cd "$DOTFILES_DIR"
 
 packages="tmux nvim ctags vscode scripts claude starship"
 
+# Stow a package, handling conflicts with backup-and-replace
+stow_package() {
+  local pkg="$1"
+  local target="$HOME"
+
+  echo "  stow $pkg"
+
+  # Check for conflicts using simulation mode
+  local conflicts
+  conflicts=$(stow --no -t "$target" "$pkg" 2>&1 | grep "existing target" | sed 's/.*existing target: *//' || true)
+
+  if [ -z "$conflicts" ]; then
+    stow -t "$target" "$pkg"
+    return
+  fi
+
+  # Conflicts detected
+  local backup_dir="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
+
+  echo "    Conflict detected! The following files already exist and"
+  echo "    would prevent stowing '$pkg':"
+  echo ""
+  while IFS= read -r file; do
+    echo "      ~/$file"
+  done <<< "$conflicts"
+  echo ""
+  echo -n "    Backup these files and replace with symlinks? [y/N] "
+  read -r answer
+
+  if [[ ! "$answer" =~ ^[Yy]$ ]]; then
+    echo "    Skipping $pkg"
+    return
+  fi
+
+  # Backup conflicting files before stowing
+  while IFS= read -r file; do
+    local src="$target/$file"
+    if [ -e "$src" ] || [ -L "$src" ]; then
+      local bak="$backup_dir/$file"
+      mkdir -p "$(dirname "$bak")"
+      mv "$src" "$bak"
+      echo "      Backed up ~/$file -> $backup_dir/$file"
+    fi
+  done <<< "$conflicts"
+
+  stow -t "$target" "$pkg"
+  echo "    Stowed $pkg"
+}
+
 echo "Stowing dotfiles from $DOTFILES_DIR..."
 for pkg in $packages; do
-  echo "  stow $pkg"
-  stow -t "$HOME" "$pkg"
+  stow_package "$pkg"
 done
 
 # Add shell completion init and prompt to .bashrc (idempotent)
