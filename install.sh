@@ -202,7 +202,7 @@ stow_package() {
 
   # Check for conflicts using simulation mode
   local conflicts
-  conflicts=$(stow --no -t "$target" "$pkg" 2>&1 | grep "existing target" | sed 's/.*existing target: *//' || true)
+  conflicts=$(stow --no -t "$target" "$pkg" 2>&1 | grep "over existing target" | sed 's/.*over existing target //;s/ since.*//' || true)
 
   if [ -z "$conflicts" ]; then
     stow -t "$target" "$pkg"
