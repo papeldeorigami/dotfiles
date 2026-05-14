@@ -1,9 +1,5 @@
 {
-  "theme": "dark",
-  "statusLine": {
-    "type": "command",
-    "command": "bash \"$HOME/.local/bin/statusline.sh\""
-  },
+  "model": "sonnet",
   "hooks": {
     "PreToolUse": [
       {
@@ -16,5 +12,10 @@
         ]
       }
     ]
-  }
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"$HOME/.local/bin/statusline.sh\""
+  },
+  "theme": "dark"
 }

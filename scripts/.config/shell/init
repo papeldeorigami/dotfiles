@@ -36,4 +36,7 @@ fi
 [ -f ~/.secrets.sh ] && . ~/.secrets.sh
 
 # load claude code config
-. ~/.config/shell/claude-env.sh
+[ -f ~/.config/shell/claude-env.sh ] && . ~/.config/shell/claude-env.sh
+
+# load shell aliases
+[ -f ~/.config/shell/aliases.sh ] && . ~/.config/shell/aliases.sh
