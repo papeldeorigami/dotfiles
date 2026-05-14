@@ -261,11 +261,15 @@ add_shell_init() {
   local rc_file="$1"
   local SHELL_INIT_LINE='[ -f "$HOME/.config/shell/init" ] && . "$HOME/.config/shell/init"'
 
+  # macOS sed needs an explicit backup extension arg for -i
+  local sed_i_opt=(-i)
+  [ "$(uname)" = Darwin ] && sed_i_opt=(-i '')
+
   # Already has it (active or commented) — nothing to do
   if grep -qs "config/shell/init" "$rc_file" 2>/dev/null; then
     # If it's commented out, uncomment it
     if grep -qs "^[[:space:]]*#[[:space:]]*$SHELL_INIT_LINE" "$rc_file" 2>/dev/null; then
-      sed -i "s|^[[:space:]]*#[[:space:]]*$SHELL_INIT_LINE|$SHELL_INIT_LINE|" "$rc_file"
+      sed "${sed_i_opt[@]}" "s|^[[:space:]]*#[[:space:]]*$SHELL_INIT_LINE|$SHELL_INIT_LINE|" "$rc_file"
       echo "  Uncommented shell init in $rc_file"
     fi
     return
@@ -275,7 +279,7 @@ add_shell_init() {
   local insert_before
   insert_before=$(grep -n "force_color_prompt\|PS1=" "$rc_file" 2>/dev/null | head -1 | cut -d: -f1)
   if [ -n "$insert_before" ]; then
-    sed -i "$insert_before i\\
+    sed "${sed_i_opt[@]}" "$insert_before i\\
 # Source shell completions and prompt (carapace + fzf + starship)\\
 $SHELL_INIT_LINE
 " "$rc_file"
@@ -287,7 +291,10 @@ $SHELL_INIT_LINE
   echo "  Added shell init to $rc_file"
 }
 
-add_shell_init "$HOME/.bashrc"
+# Add shell init to .bashrc if it exists (not all systems use bash)
+if [ -f "$HOME/.bashrc" ]; then
+  add_shell_init "$HOME/.bashrc"
+fi
 
 # Also add to .zshrc if it exists
 if [ -f "$HOME/.zshrc" ]; then
