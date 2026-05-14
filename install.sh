@@ -193,10 +193,67 @@ cd "$DOTFILES_DIR"
 
 packages="tmux nvim ctags vscode scripts claude starship"
 
+# Stow a package, handling conflicts with backup-and-replace
+stow_package() {
+  local pkg="$1"
+  local target="$HOME"
+
+  echo "  stow $pkg"
+
+  # Check for conflicts using simulation mode
+  local conflicts
+  conflicts=$(stow --no -t "$target" "$pkg" 2>&1 | grep "existing target" | sed 's/.*existing target\( is not owned by stow:\)*[: ]*//;s/ since.*//' || true)
+
+  if [ -z "$conflicts" ]; then
+    # Parsing failed or unknown format — fall back to simulation output
+    echo "    $(stow --no -t "$target" "$pkg" 2>&1)"
+    echo ""
+    echo -n "    Force stow anyway (overwrite existing files)? [y/N] "
+    read -r answer
+    if [[ "$answer" =~ ^[Yy]$ ]]; then
+      stow --adopt -t "$target" "$pkg"
+      return
+    fi
+    echo "    Skipping $pkg"
+    return
+  fi
+
+  # Conflicts detected
+  local backup_dir="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
+
+  echo "    Conflict detected! The following files already exist and"
+  echo "    would prevent stowing '$pkg':"
+  echo ""
+  while IFS= read -r file; do
+    echo "      ~/$file"
+  done <<< "$conflicts"
+  echo ""
+  echo -n "    Backup these files and replace with symlinks? [y/N] "
+  read -r answer
+
+  if [[ ! "$answer" =~ ^[Yy]$ ]]; then
+    echo "    Skipping $pkg"
+    return
+  fi
+
+  # Backup conflicting files before stowing
+  while IFS= read -r file; do
+    local src="$target/$file"
+    if [ -e "$src" ] || [ -L "$src" ]; then
+      local bak="$backup_dir/$file"
+      mkdir -p "$(dirname "$bak")"
+      mv "$src" "$bak"
+      echo "      Backed up ~/$file -> $backup_dir/$file"
+    fi
+  done <<< "$conflicts"
+
+  stow -t "$target" "$pkg"
+  echo "    Stowed $pkg"
+}
+
 echo "Stowing dotfiles from $DOTFILES_DIR..."
 for pkg in $packages; do
-  echo "  stow $pkg"
-  stow -t "$HOME" "$pkg"
+  stow_package "$pkg"
 done
 
 # Add shell completion init and prompt to .bashrc (idempotent)
@@ -204,11 +261,15 @@ add_shell_init() {
   local rc_file="$1"
   local SHELL_INIT_LINE='[ -f "$HOME/.config/shell/init" ] && . "$HOME/.config/shell/init"'
 
+  # macOS sed needs an explicit backup extension arg for -i
+  local sed_i_opt=(-i)
+  [ "$(uname)" = Darwin ] && sed_i_opt=(-i '')
+
   # Already has it (active or commented) — nothing to do
   if grep -qs "config/shell/init" "$rc_file" 2>/dev/null; then
     # If it's commented out, uncomment it
     if grep -qs "^[[:space:]]*#[[:space:]]*$SHELL_INIT_LINE" "$rc_file" 2>/dev/null; then
-      sed -i "s|^[[:space:]]*#[[:space:]]*$SHELL_INIT_LINE|$SHELL_INIT_LINE|" "$rc_file"
+      sed "${sed_i_opt[@]}" "s|^[[:space:]]*#[[:space:]]*$SHELL_INIT_LINE|$SHELL_INIT_LINE|" "$rc_file"
       echo "  Uncommented shell init in $rc_file"
     fi
     return
@@ -218,7 +279,7 @@ add_shell_init() {
   local insert_before
   insert_before=$(grep -n "force_color_prompt\|PS1=" "$rc_file" 2>/dev/null | head -1 | cut -d: -f1)
   if [ -n "$insert_before" ]; then
-    sed -i "$insert_before i\\
+    sed "${sed_i_opt[@]}" "$insert_before i\\
 # Source shell completions and prompt (carapace + fzf + starship)\\
 $SHELL_INIT_LINE
 " "$rc_file"
@@ -230,7 +291,10 @@ $SHELL_INIT_LINE
   echo "  Added shell init to $rc_file"
 }
 
-add_shell_init "$HOME/.bashrc"
+# Add shell init to .bashrc if it exists (not all systems use bash)
+if [ -f "$HOME/.bashrc" ]; then
+  add_shell_init "$HOME/.bashrc"
+fi
 
 # Also add to .zshrc if it exists
 if [ -f "$HOME/.zshrc" ]; then
@@ -243,4 +307,4 @@ echo "To apply changes:"
 echo "  tmux   → tmux source-file ~/.tmux.conf  (or start a new session)"
 echo "  vscode → Reload VS Code (Ctrl+Shift+P → Developer: Reload Window)"
 echo "  nvim   → Just restart Neovim"
-echo "  shell  → Run: source ~/.bashrc  (or start a new terminal)"
+echo "  shell  → Run: source ~/.bashrc (or ~/.zshrc)  (or start a new terminal)"
