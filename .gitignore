@@ -1,3 +1,6 @@
+# Secrets (API keys for Claude, etc.)
+.secrets.sh
+
 # RTK binary
 rtk
 
