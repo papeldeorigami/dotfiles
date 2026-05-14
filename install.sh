@@ -202,10 +202,19 @@ stow_package() {
 
   # Check for conflicts using simulation mode
   local conflicts
-  conflicts=$(stow --no -t "$target" "$pkg" 2>&1 | grep "over existing target" | sed 's/.*over existing target //;s/ since.*//' || true)
+  conflicts=$(stow --no -t "$target" "$pkg" 2>&1 | grep "existing target" | sed 's/.*existing target\( is not owned by stow:\)*[: ]*//;s/ since.*//' || true)
 
   if [ -z "$conflicts" ]; then
-    stow -t "$target" "$pkg"
+    # Parsing failed or unknown format — fall back to simulation output
+    echo "    $(stow --no -t "$target" "$pkg" 2>&1)"
+    echo ""
+    echo -n "    Force stow anyway (overwrite existing files)? [y/N] "
+    read -r answer
+    if [[ "$answer" =~ ^[Yy]$ ]]; then
+      stow --adopt -t "$target" "$pkg"
+      return
+    fi
+    echo "    Skipping $pkg"
     return
   fi
 
