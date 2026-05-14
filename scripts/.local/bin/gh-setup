@@ -79,8 +79,25 @@ _gh_add_key() {
   fi
 
   echo "Adding SSH key to GitHub as '${title}'..."
-  gh ssh-key add "$key_path" --title "$title"
-  echo "Done! Key added to GitHub."
+  if ! output=$(gh ssh-key add "$key_path" --title "$title" 2>&1); then
+    if echo "$output" | grep -qiE "(admin:public_key|scope|insufficient|404)"; then
+      echo ""
+      echo "  Could not add key automatically — your gh token lacks the"
+      echo "  \"admin:public_key\" scope."
+      echo ""
+      echo "  To upload the key manually:"
+      echo "    1. Open https://github.com/settings/keys"
+      echo "    2. Click \"New SSH Key\""
+      echo "    3. Title: ${title}"
+      echo "    4. Paste the contents of ${key_path}"
+      echo ""
+      echo "  Or grant the scope and re-run this step:"
+      echo "    gh auth refresh -h github.com -s admin:public_key"
+      return 0
+    fi
+    echo "Error: $output" >&2
+    exit 1
+  fi
 }
 
 # --- Parse args ---
