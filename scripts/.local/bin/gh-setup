@@ -1,0 +1,113 @@
+#!/bin/bash
+# Install gh CLI, authenticate, and optionally add an SSH key to GitHub
+set -euo pipefail
+
+PROTOCOL="https"
+KEY_PATH="${HOME}/.ssh/id_ed25519_github.pub"
+KEY_TITLE=""
+MODE="install"
+
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") [options]
+
+Install gh CLI (if missing), authenticate, and optionally add an SSH key.
+
+Modes:
+  install        Install + authenticate gh (default)
+  add-key        Add an SSH key to GitHub (requires -k)
+
+Options:
+  -k path        Path to SSH public key to add to GitHub
+  -t title       Title for the SSH key (default: hostname-date)
+  -p proto       gh auth protocol: https or ssh (default: https)
+  --help         Show this help
+
+Examples:
+  $(basename "$0")
+  $(basename "$0") -k ~/.ssh/id_ed25519_github.pub
+  $(basename "$0") -k ~/.ssh/id_ed25519_work.pub -t "work-laptop" -p ssh
+EOF
+  exit 0
+}
+
+_gh_install() {
+  if command -v gh &>/dev/null; then
+    echo "gh CLI already installed at $(command -v gh)."
+    return
+  fi
+
+  echo "gh CLI not found. Attempting installation..."
+
+  if command -v apt-get &>/dev/null; then
+    sudo apt-get update && sudo apt-get install -y gh
+  elif command -v dnf &>/dev/null; then
+    sudo dnf install -y gh
+  elif command -v brew &>/dev/null; then
+    brew install gh
+  elif command -v pacman &>/dev/null; then
+    sudo pacman -S --noconfirm github-cli
+  else
+    echo "Error: No supported package manager found." >&2
+    echo "Install gh manually: https://github.com/cli/cli#installation" >&2
+    exit 1
+  fi
+
+  echo "gh CLI installed successfully."
+}
+
+_gh_auth() {
+  local protocol="$1"
+
+  if gh auth status &>/dev/null; then
+    echo "Already authenticated to GitHub."
+  else
+    echo "Authenticating with GitHub (protocol: ${protocol})..."
+    echo "→ If no browser opens, gh will show a device code. Visit"
+    echo "  https://github.com/login/device on any machine and enter it."
+    gh auth login --git-protocol "$protocol"
+  fi
+}
+
+_gh_add_key() {
+  local key_path="$1"
+  local title="${2:-$(hostname)-$(date +%Y%m%d)}"
+
+  if [ ! -f "$key_path" ]; then
+    echo "Error: Public key not found at ${key_path}." >&2
+    exit 1
+  fi
+
+  echo "Adding SSH key to GitHub as '${title}'..."
+  gh ssh-key add "$key_path" --title "$title"
+  echo "Done! Key added to GitHub."
+}
+
+# --- Parse args ---
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -k) KEY_PATH="$2"; shift 2 ;;
+    -t) KEY_TITLE="$2"; shift 2 ;;
+    -p) PROTOCOL="$2"; shift 2 ;;
+    add-key) MODE="add-key"; shift ;;
+    install) MODE="install"; shift ;;
+    --help) usage ;;
+    *) echo "Unknown option: $1"; usage ;;
+  esac
+done
+
+case "$MODE" in
+  install)
+    _gh_install
+    _gh_auth "$PROTOCOL"
+    echo "gh CLI setup complete."
+    ;;
+  add-key)
+    if [ -z "$KEY_PATH" ]; then
+      echo "Error: -k <path> is required in add-key mode." >&2
+      exit 1
+    fi
+    _gh_add_key "$KEY_PATH" "$KEY_TITLE"
+    ;;
+esac

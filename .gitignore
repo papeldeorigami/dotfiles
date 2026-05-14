@@ -1,3 +1,13 @@
-.vim/
-.byobu/plugins
-.byobu/.ssh-agent
+# RTK binary
+rtk
+
+# Precompiled binaries (installed via install.sh, not tracked)
+scripts/.local/bin/mise
+scripts/.local/bin/starship
+
+# Claude runtime data (auto-generated, not configs)
+# Track config files only: settings.json, CLAUDE.md, RTK.md
+claude/.claude/*
+!claude/.claude/settings.json
+!claude/.claude/CLAUDE.md
+!claude/.claude/RTK.md

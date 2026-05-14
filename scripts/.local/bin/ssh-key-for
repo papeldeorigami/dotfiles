@@ -1,0 +1,80 @@
+#!/bin/bash
+# Generate a secure ed25519 SSH key for a specific purpose
+set -euo pipefail
+
+PURPOSE=""
+KEY_PATH=""
+COMMENT=""
+PASSPHRASE_PROMPT=true
+
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") [purpose] [options]
+
+Generate a secure ed25519 SSH key tied to a purpose (e.g. github, gitlab, work).
+
+Positional:
+  purpose     Key purpose (default: github) — used for filename and comment
+
+Options:
+  -f path     Key file path (default: ~/.ssh/id_ed25519_<purpose>)
+  -c comment  Key comment (default: user@hostname-<purpose>-YYYYMMDD)
+  -N ''       Set empty passphrase (no prompt; omit to be prompted)
+  -h          Show this help
+
+Examples:
+  $(basename "$0") github
+  $(basename "$0") gitlab -N ''
+  $(basename "$0") work -f ~/.ssh/work_key
+  $(basename "$0") personal -c "my personal key"
+EOF
+  exit 0
+}
+
+# First positional arg is the purpose, if present and doesn't start with -
+if [ $# -gt 0 ] && [[ "$1" != -* ]]; then
+  PURPOSE="$1"
+  shift
+fi
+
+PURPOSE="${PURPOSE:-github}"
+
+while getopts "f:c:N:h" opt; do
+  case $opt in
+    f) KEY_PATH="$OPTARG" ;;
+    c) COMMENT="$OPTARG" ;;
+    N) PASSPHRASE_PROMPT=false; PASSPHRASE="$OPTARG" ;;
+    h) usage ;;
+    *) usage ;;
+  esac
+done
+
+KEY_PATH="${KEY_PATH:-${HOME}/.ssh/id_ed25519_${PURPOSE}}"
+COMMENT="${COMMENT:-${USER}@$(hostname)-${PURPOSE}-$(date +%Y%m%d)}"
+
+if [ -f "$KEY_PATH" ]; then
+  read -rp "Key already exists at ${KEY_PATH}. Overwrite? [y/N] " confirm
+  if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+    echo "Aborted."
+    exit 1
+  fi
+fi
+
+mkdir -p "$(dirname "$KEY_PATH")"
+chmod 700 "$(dirname "$KEY_PATH")"
+
+if [ "$PASSPHRASE_PROMPT" = true ]; then
+  ssh-keygen -t ed25519 -a 100 -f "$KEY_PATH" -C "$COMMENT"
+else
+  ssh-keygen -t ed25519 -a 100 -f "$KEY_PATH" -C "$COMMENT" -N "$PASSPHRASE"
+fi
+
+chmod 600 "$KEY_PATH"
+chmod 644 "${KEY_PATH}.pub"
+
+echo ""
+echo "Key generated:"
+echo "  Purpose: $PURPOSE"
+echo "  Private: $KEY_PATH"
+echo "  Public:  ${KEY_PATH}.pub"
+echo "  Comment: $COMMENT"

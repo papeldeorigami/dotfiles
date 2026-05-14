@@ -1,0 +1,269 @@
+#!/bin/bash
+# Full workflow: generate SSH key, configure SSH, set up gh, add key to GitHub
+set -euo pipefail
+
+PURPOSE=""
+KEY_PATH=""
+PASSPHRASE=""
+USE_PASSPHRASE=true
+SSH_HOST_ALIAS="github.com"
+SSH_HOSTNAME="github.com"
+GH_PROTOCOL="https"
+SKIP_GH=false
+SKIP_KEYGEN=false
+SKIP_CONFIGURE=false
+SKIP_GIT_CONFIG=false
+MODE="setup"
+
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") [purpose] [options]
+
+Orchestrate the full GitHub SSH key workflow:
+  1. Generate a secure ed25519 SSH key
+  2. Scope it for GitHub in ~/.ssh/config
+  3. Set git user.name and user.email (if missing)
+  4. Install and authenticate gh CLI (if needed)
+  5. Add the public key to your GitHub account
+
+Positional:
+  purpose     Key purpose (default: github) — passed to ssh-key-for
+
+Options:
+  -f path       Key file path (default: ~/.ssh/id_ed25519_<purpose>)
+  -N pass       Passphrase for key (omit to prompt; '' for no passphrase)
+  -h alias      Host alias for SSH config (default: github.com)
+  -H hostname   Git hostname for SSH config (default: same as alias)
+  -p proto      gh auth protocol: https or ssh (default: https)
+  --skip-gh     Skip gh CLI setup and key upload
+  --skip-keygen Skip key generation
+  --skip-configure  Skip SSH config setup
+  --skip-git-config  Skip git user.name/user.email setup
+  --remove-config   Remove the SSH config block for the given host
+  --view-config     View the current SSH config block for the given host
+  --help        Show this help
+
+Examples:
+  $(basename "$0")
+  $(basename "$0") github
+  $(basename "$0") work -N ''
+  $(basename "$0") personal -f ~/.ssh/my_id_rsa -h gh-personal -H github.com -p ssh
+EOF
+  exit 0
+}
+
+# --- github-ssh-configure inlined functions ---
+
+_ssh_config_remove() {
+  local host_alias="$1"
+  local ssh_config="${HOME}/.ssh/config"
+  local block_start="# >>> github-ssh-configure: ${host_alias}"
+  local block_end="# <<< github-ssh-configure: ${host_alias}"
+  if [ ! -f "$ssh_config" ]; then
+    echo "No SSH config found at $ssh_config. Nothing to remove."
+    return
+  fi
+  if grep -qF "$block_start" "$ssh_config" 2>/dev/null; then
+    sed -i "/^${block_start}$/,/^${block_end}$/d" "$ssh_config"
+    echo "Removed config block for '${host_alias}'."
+    # Collapse multiple consecutive blank lines into one
+    sed -i '/^$/{ N; /^\n$/d; }' "$ssh_config"
+  else
+    echo "No config block found for '${host_alias}'. Nothing to remove."
+  fi
+}
+
+_ssh_config_view() {
+  local host_alias="$1"
+  local ssh_config="${HOME}/.ssh/config"
+  local block_start="# >>> github-ssh-configure: ${host_alias}"
+  local block_end="# <<< github-ssh-configure: ${host_alias}"
+  if [ ! -f "$ssh_config" ]; then
+    echo "No SSH config found at $ssh_config."
+    return
+  fi
+  awk -v start="$block_start" '
+    $0 == start { found=1 }
+    found { print }
+    $0 == "'"$block_end"'" { found=0 }
+  ' "$ssh_config"
+  if [ $? -ne 0 ]; then
+    echo "No config block found for '${host_alias}'."
+  fi
+}
+
+_ssh_config_add() {
+  local key_path="$1" host_alias="$2" hostname="$3"
+  local ssh_config="${HOME}/.ssh/config"
+  local block_start="# >>> github-ssh-configure: ${host_alias}"
+  local block_end="# <<< github-ssh-configure: ${host_alias}"
+
+  # Ensure key exists
+  if [ ! -f "$key_path" ]; then
+    echo "Error: Key not found at ${key_path}." >&2
+    exit 1
+  fi
+
+  mkdir -p "$(dirname "$ssh_config")"
+  touch "$ssh_config"
+  chmod 600 "$ssh_config"
+
+  # Remove existing block for this host alias before re-adding
+  local tmp_block_start="$block_start"
+  local tmp_block_end="$block_end"
+  if grep -qF "$block_start" "$ssh_config" 2>/dev/null; then
+    sed -i "/^${block_start}$/,/^${block_end}$/d" "$ssh_config"
+    sed -i '/^$/{ N; /^\n$/d; }' "$ssh_config"
+  fi 2>/dev/null || true
+
+  {
+    echo ""
+    echo "${block_start}"
+    echo "Host ${host_alias}"
+    echo "  HostName ${hostname}"
+    echo "  IdentityFile ${key_path}"
+    echo "  IdentitiesOnly yes"
+    echo "${block_end}"
+  } >> "$ssh_config"
+
+  # Collapse multiple consecutive blank lines into one
+  sed -i '/^$/{ N; /^\n$/d; }' "$ssh_config"
+
+  echo "Configured SSH to use ${key_path} for ${host_alias} (→ ${hostname})."
+  echo "  Config: ${ssh_config}"
+}
+
+# --- Main ---
+
+# First positional arg is the purpose, if present and doesn't start with -
+if [ $# -gt 0 ] && [[ "$1" != -* ]]; then
+  PURPOSE="$1"
+  shift
+fi
+
+PURPOSE="${PURPOSE:-github}"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -f) KEY_PATH="$2"; shift 2 ;;
+    -N) PASSPHRASE="$2"; USE_PASSPHRASE=false; shift 2 ;;
+    -h) SSH_HOST_ALIAS="$2"; shift 2 ;;
+    -H) SSH_HOSTNAME="$2"; shift 2 ;;
+    -p) GH_PROTOCOL="$2"; shift 2 ;;
+    --skip-gh) SKIP_GH=true; shift ;;
+    --skip-keygen) SKIP_KEYGEN=true; shift ;;
+    --skip-configure) SKIP_CONFIGURE=true; shift ;;
+    --skip-git-config) SKIP_GIT_CONFIG=true; shift ;;
+    --remove-config) MODE="remove-config"; shift ;;
+    --view-config) MODE="view-config"; shift ;;
+    --help) usage ;;
+    *) echo "Unknown option: $1"; usage ;;
+  esac
+done
+
+KEY_PATH="${KEY_PATH:-${HOME}/.ssh/id_ed25519_${PURPOSE}}"
+
+# Standalone config operations
+if [ "$MODE" = "remove-config" ]; then
+  _ssh_config_remove "$SSH_HOST_ALIAS"
+  exit 0
+fi
+
+if [ "$MODE" = "view-config" ]; then
+  _ssh_config_view "$SSH_HOST_ALIAS"
+  exit 0
+fi
+
+echo "=== GitHub SSH Key Setup (${PURPOSE}) ==="
+echo ""
+
+# Step 1: Generate key
+if [ "$SKIP_KEYGEN" = false ]; then
+  echo "--- Step 1: SSH Key Generation ---"
+  KEYGEN_ARGS=( "$PURPOSE" -f "$KEY_PATH" )
+  if [ "$USE_PASSPHRASE" = false ]; then
+    KEYGEN_ARGS+=(-N "$PASSPHRASE")
+  fi
+  ssh-key-for "${KEYGEN_ARGS[@]}"
+  echo ""
+else
+  echo "--- Step 1: Skipping key generation ---"
+  echo ""
+fi
+
+# Step 2: Configure SSH
+if [ "$SKIP_CONFIGURE" = false ]; then
+  echo "--- Step 2: SSH Config ---"
+  _ssh_config_add "$KEY_PATH" "$SSH_HOST_ALIAS" "$SSH_HOSTNAME"
+  echo ""
+else
+  echo "--- Step 2: Skipping SSH config ---"
+  echo ""
+fi
+
+# Step 3: Git user config
+if [ "$SKIP_GIT_CONFIG" = false ]; then
+  echo "--- Step 3: Git User Config ---"
+  NAME_MISSING=false
+  EMAIL_MISSING=false
+
+  if [ -z "$(git config --global user.name 2>/dev/null)" ]; then
+    NAME_MISSING=true
+  else
+    echo "  user.name: $(git config --global user.name)"
+  fi
+
+  if [ -z "$(git config --global user.email 2>/dev/null)" ]; then
+    EMAIL_MISSING=true
+  else
+    echo "  user.email: $(git config --global user.email)"
+  fi
+
+  if [ "$NAME_MISSING" = true ] || [ "$EMAIL_MISSING" = true ]; then
+    echo ""
+    echo "  Some git config values are missing. Let's set them."
+    echo "  (Leave blank to skip any value.)"
+    echo ""
+  fi
+
+  if [ "$NAME_MISSING" = true ]; then
+    read -rp "  git user.name: " GIT_NAME
+    if [ -n "$GIT_NAME" ]; then
+      git config --global user.name "$GIT_NAME"
+      echo "  → Set user.name to '${GIT_NAME}'"
+    fi
+  fi
+
+  if [ "$EMAIL_MISSING" = true ]; then
+    read -rp "  git user.email: " GIT_EMAIL
+    if [ -n "$GIT_EMAIL" ]; then
+      git config --global user.email "$GIT_EMAIL"
+      echo "  → Set user.email to '${GIT_EMAIL}'"
+    fi
+  fi
+  echo ""
+else
+  echo "--- Step 3: Skipping git config ---"
+  echo ""
+fi
+
+# Step 4: gh CLI setup
+if [ "$SKIP_GH" = false ]; then
+  echo "--- Step 4: GitHub CLI Setup ---"
+  gh-setup install -p "$GH_PROTOCOL"
+  echo ""
+
+  # Step 5: Add key to GitHub
+  echo "--- Step 5: Adding Key to GitHub ---"
+  gh-setup add-key -k "${KEY_PATH}.pub"
+  echo ""
+else
+  echo "--- Steps 4-5: Skipping gh CLI setup and key upload ---"
+  echo ""
+fi
+
+echo "=== Setup Complete ==="
+echo "  Key:      ${KEY_PATH}"
+echo "  SSH host: ${SSH_HOST_ALIAS} → ${SSH_HOSTNAME}"
+echo ""
+echo "Test with: ssh -T git@${SSH_HOST_ALIAS}"

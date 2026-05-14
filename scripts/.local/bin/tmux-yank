@@ -1,0 +1,49 @@
+#!/bin/bash
+# tmux-yank — Copy selection to clipboard
+#
+# Uses OSC 52 escape sequences over SSH (reaches local Mac clipboard via iTerm2
+# and other modern terminals). Falls back to xclip/wl-copy for local use.
+
+set -euo pipefail
+
+read_selection() {
+  if [ ! -t 0 ]; then
+    cat
+  fi
+}
+
+# OSC 52: write directly to /dev/tty so the terminal emulator on the Mac
+# receives the sequence and places it on the local clipboard.
+osc52_copy() {
+  local content
+  content="$(read_selection)"
+  [ -z "$content" ] && exit 0
+
+  local encoded
+  encoded="$(printf "%s" "$content" | base64 -w0)"
+  printf "\033]52;c;%s\a" "$encoded" >/dev/tty
+}
+
+local_copy() {
+  if [ -n "${WAYLAND_DISPLAY-}" ] && command -v wl-copy &>/dev/null; then
+    wl-copy "$@"
+  elif command -v xclip &>/dev/null; then
+    xclip -selection clipboard -i "$@"
+  else
+    return 1
+  fi
+}
+
+# Detect SSH session — includes direct SSH, mosh, and tmux-ssh.
+is_ssh() {
+  [ -n "${SSH_CLIENT-}" ] || [ -n "${SSH_CONNECTION-}" ] || [ -n "${SSH_TTY-}" ]
+}
+
+if is_ssh; then
+  osc52_copy
+elif local_copy; then
+  :
+else
+  # No local clipboard tool either — try OSC 52 as last resort
+  osc52_copy
+fi
