@@ -81,6 +81,9 @@ if [ -n "$ZSH_VERSION" ]; then
   unset _zsh_brew_prefix
 fi
 
+# ---------- zoxide ----------
+eval "$(zoxide init zsh)"
+
 # ---------- Load additional configs --------
 # load secrets like API keys
 [ -f ~/.secrets.sh ] && . ~/.secrets.sh
